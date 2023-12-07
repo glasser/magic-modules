@@ -31,59 +31,23 @@ type mcCloudbuild interface {
 
 // membershipCheckerCmd represents the membershipChecker command
 var membershipCheckerCmd = &cobra.Command{
-	Use:   "membership-checker",
-	Short: "Assigns reviewers and manages pull request processing based on the author's trust level.",
-	Long: `This command conducts a series of validations and actions based on the details and authorship of a provided pull request.
+	Use:   "request-service-reviewers PR_NUMBER",
+	Short: "Assigns reviewers based on the PR's service labels.",
+	Long: `This command requests (or re-requests) review based on the PR's service labels.
 
-	The command expects the following pull request details as arguments:
-	1. PR Number
-	2. Commit SHA
-	3. Branch Name
-	4. Head Repo URL
-	5. Head Branch
-	6. Base Branch
-
-	It then performs the following operations:
-	1. Extracts and displays the pull request details.
-	2. Fetches the author of the pull request and determines their contribution type.
-	3. If the author is not a core contributor:
-			a. Identifies the initially requested reviewer and those who previously reviewed this PR.
-			b. Determines and requests reviewers based on the above.
-			c. Posts comments tailored to the contribution type, the trust level of the contributor, and the primary reviewer.
-	4. For trusted authors (Core Contributors and Googlers):
-			a. Triggers generate-diffs using the provided PR details.
-			b. Automatically approves the community-checker run.
-	5. For external or untrusted contributors:
-			a. Adds the 'awaiting-approval' label.
-			b. Posts a link prompting approval for the build.
+	If a PR has more than 3 service labels, the command will not do anything.
 	`,
 	Args: cobra.ExactArgs(6),
 	Run: func(cmd *cobra.Command, args []string) {
 		prNumber := args[0]
 		fmt.Println("PR Number: ", prNumber)
 
-		commitSha := args[1]
-		fmt.Println("Commit SHA: ", commitSha)
-
-		branchName := args[2]
-		fmt.Println("Branch Name: ", branchName)
-
-		headRepoUrl := args[3]
-		fmt.Println("Head Repo URL: ", headRepoUrl)
-
-		headBranch := args[4]
-		fmt.Println("Head Branch: ", headBranch)
-
-		baseBranch := args[5]
-		fmt.Println("Base Branch: ", baseBranch)
-
 		gh := github.NewGithubService()
-		cb := cloudbuild.NewCloudBuildService()
-		execMembershipChecker(prNumber, commitSha, branchName, headRepoUrl, headBranch, baseBranch, gh, cb)
+		execRequestServiceReviewers(prNumber, gh)
 	},
 }
 
-func execMembershipChecker(prNumber, commitSha, branchName, headRepoUrl, headBranch, baseBranch string, gh mcGithub, cb mcCloudbuild) {
+func execRequestServiceReviewers(prNumber string, gh mcGithub) {
 	substitutions := map[string]string{
 		"BRANCH_NAME":    branchName,
 		"_PR_NUMBER":     prNumber,
